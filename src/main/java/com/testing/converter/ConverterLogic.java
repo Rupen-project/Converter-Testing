@@ -116,5 +116,63 @@ public class ConverterLogic {
             return new ResponseEntity<>("Invalid date format", HttpStatus.BAD_REQUEST);
         }
     }
+
+    @PostMapping("/convertNumber")
+    public ResponseEntity<?> convertNumber(@RequestBody ConversionRequest request) {
+        try {
+            String input = request.getInput();
+            String output;
+
+            switch (request.getConversionType()) {
+                case "decimalToBinary":
+                    int decimalValue = Integer.parseInt(input);
+                    output = Integer.toBinaryString(decimalValue);
+                    break;
+
+                case "binaryToDecimal":
+                    int binaryValue = Integer.parseInt(input, 2);
+                    output = String.valueOf(binaryValue);
+                    break;
+
+                case "decimalToHexadecimal":
+                    int decimalValueForHex = Integer.parseInt(input);
+                    output = Integer.toHexString(decimalValueForHex).toUpperCase();
+                    break;
+
+                case "hexadecimalToDecimal":
+                    int decimalValueForHex1 = Integer.parseInt(input, 16);
+                    output = String.valueOf(decimalValueForHex1);
+                    break;
+
+                default:
+                    return new ResponseEntity<>("Invalid conversion type", HttpStatus.BAD_REQUEST);
+            }
+
+            return ResponseEntity.ok(output);
+        } catch (NumberFormatException e) {
+            return new ResponseEntity<>("Invalid input or conversion type", HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    public static class ConversionRequest {
+        private String input;
+        private String conversionType;
+
+        public String getInput() {
+            return input;
+        }
+
+        public void setInput(String input) {
+            this.input = input;
+        }
+
+        public String getConversionType() {
+            return conversionType;
+        }
+
+        public void setConversionType(String conversionType) {
+            this.conversionType = conversionType;
+        }
+    }
 }
 
