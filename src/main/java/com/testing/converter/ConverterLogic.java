@@ -5,6 +5,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+import java.math.MathContext;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -118,7 +120,7 @@ public class ConverterLogic {
     }
 
     @PostMapping("/convertNumber")
-    public ResponseEntity<?> convertNumber(@RequestBody ConversionRequest request) {
+    public ResponseEntity<?> convertNumber(@RequestBody Number_ConversionRequest request) {
         try {
             String input = request.getInput();
             String output;
@@ -154,7 +156,7 @@ public class ConverterLogic {
         }
     }
 
-    public static class ConversionRequest {
+    public static class Number_ConversionRequest {
         private String input;
         private String conversionType;
 
@@ -174,5 +176,175 @@ public class ConverterLogic {
             this.conversionType = conversionType;
         }
     }
+
+    static final Map<String, BigDecimal> exchangeRates = new HashMap<>();
+
+    static {
+        // Example exchange rates (for illustration purposes, not actual rates)
+        exchangeRates.put("USD", BigDecimal.ONE);
+        exchangeRates.put("EUR", new BigDecimal("0.85"));
+        exchangeRates.put("GBP", new BigDecimal("0.73"));
+        exchangeRates.put("JPY", new BigDecimal("111.31"));
+        exchangeRates.put("AUD", new BigDecimal("1.36"));
+        exchangeRates.put("CAD", new BigDecimal("1.26"));
+        exchangeRates.put("INR", new BigDecimal("73.68"));
+        exchangeRates.put("CNY", new BigDecimal("6.46"));
+        exchangeRates.put("BRL", new BigDecimal("5.40"));
+        exchangeRates.put("ZAR", new BigDecimal("16.79"));
+        // Add more currencies and their respective rates as needed
+    }
+
+    @PostMapping("/convertCurrency")
+    public ResponseEntity<?> convertCurrency(@RequestBody CurrencyConversionRequest request) {
+        try {
+            String sourceCurrency = request.getSourceCurrency();
+            String targetCurrency = request.getTargetCurrency();
+            BigDecimal amount = request.getAmount();
+
+            if (!exchangeRates.containsKey(sourceCurrency) || !exchangeRates.containsKey(targetCurrency)) {
+                return new ResponseEntity<>("Invalid source or target currency", HttpStatus.BAD_REQUEST);
+            }
+
+            BigDecimal sourceToUSD = amount.divide(exchangeRates.get(sourceCurrency), 4, BigDecimal.ROUND_HALF_UP);
+            BigDecimal targetAmount = sourceToUSD.multiply(exchangeRates.get(targetCurrency));
+
+            return ResponseEntity.ok(targetAmount);
+        } catch (Exception e) {
+            return new ResponseEntity<>("Invalid input or conversion", HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    public static class CurrencyConversionRequest {
+        private String sourceCurrency;
+        private String targetCurrency;
+        private BigDecimal amount;
+
+        public String getSourceCurrency() {
+            return sourceCurrency;
+        }
+
+        public void setSourceCurrency(String sourceCurrency) {
+            this.sourceCurrency = sourceCurrency;
+        }
+
+        public String getTargetCurrency() {
+            return targetCurrency;
+        }
+
+        public void setTargetCurrency(String targetCurrency) {
+            this.targetCurrency = targetCurrency;
+        }
+
+        public BigDecimal getAmount() {
+            return amount;
+        }
+
+        public void setAmount(BigDecimal amount) {
+            this.amount = amount;
+        }
+    }
+
+    @PostMapping("/convertTemprature")
+    public ResponseEntity<?> convertTemperature(@RequestBody TemperatureConversionRequest request) {
+        try {
+            String sourceUnit = request.getSourceUnit().toLowerCase();
+            String targetUnit = request.getTargetUnit().toLowerCase();
+            BigDecimal temperature = request.getTemperature();
+
+            if (!isValidUnit(sourceUnit) || !isValidUnit(targetUnit)) {
+                return new ResponseEntity<>("Invalid temperature unit", HttpStatus.BAD_REQUEST);
+            }
+
+            BigDecimal convertedTemperature;
+            switch (sourceUnit) {
+                case "celsius":
+                    convertedTemperature = convertFromCelsius(temperature, targetUnit);
+                    break;
+                case "fahrenheit":
+                    convertedTemperature = convertFromFahrenheit(temperature, targetUnit);
+                    break;
+                case "kelvin":
+                    convertedTemperature = convertFromKelvin(temperature, targetUnit);
+                    break;
+                default:
+                    return new ResponseEntity<>("Invalid source temperature unit", HttpStatus.BAD_REQUEST);
+            }
+
+            return ResponseEntity.ok(convertedTemperature);
+        } catch (Exception e) {
+            return new ResponseEntity<>("Invalid input or conversion", HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    BigDecimal convertFromCelsius(BigDecimal temperature, String targetUnit) {
+        switch (targetUnit) {
+            case "fahrenheit":
+                return temperature.multiply(BigDecimal.valueOf(9)).divide(BigDecimal.valueOf(5), MathContext.DECIMAL128).add(BigDecimal.valueOf(32));
+            case "kelvin":
+                return temperature.add(BigDecimal.valueOf(273.15));
+            default:
+                throw new IllegalArgumentException("Invalid target temperature unit");
+        }
+    }
+
+    BigDecimal convertFromFahrenheit(BigDecimal temperature, String targetUnit) {
+        switch (targetUnit) {
+            case "celsius":
+                return temperature.subtract(BigDecimal.valueOf(32)).multiply(BigDecimal.valueOf(5)).divide(BigDecimal.valueOf(9), MathContext.DECIMAL128);
+            case "kelvin":
+                return temperature.subtract(BigDecimal.valueOf(32)).multiply(BigDecimal.valueOf(5)).divide(BigDecimal.valueOf(9), MathContext.DECIMAL128).add(BigDecimal.valueOf(273.15));
+            default:
+                throw new IllegalArgumentException("Invalid target temperature unit");
+        }
+    }
+
+    BigDecimal convertFromKelvin(BigDecimal temperature, String targetUnit) {
+        switch (targetUnit) {
+            case "celsius":
+                return temperature.subtract(BigDecimal.valueOf(273.15));
+            case "fahrenheit":
+                return temperature.subtract(BigDecimal.valueOf(273.15)).multiply(BigDecimal.valueOf(9)).divide(BigDecimal.valueOf(5), MathContext.DECIMAL128).add(BigDecimal.valueOf(32));
+            default:
+                throw new IllegalArgumentException("Invalid target temperature unit");
+        }
+    }
+
+
+    private boolean isValidUnit(String unit) {
+        return unit.equals("celsius") || unit.equals("fahrenheit") || unit.equals("kelvin");
+    }
+
+    public static class TemperatureConversionRequest {
+        private BigDecimal temperature;
+        private String sourceUnit;
+        private String targetUnit;
+
+        public BigDecimal getTemperature() {
+            return temperature;
+        }
+
+        public void setTemperature(BigDecimal temperature) {
+            this.temperature = temperature;
+        }
+
+        public String getSourceUnit() {
+            return sourceUnit;
+        }
+
+        public void setSourceUnit(String sourceUnit) {
+            this.sourceUnit = sourceUnit;
+        }
+
+        public String getTargetUnit() {
+            return targetUnit;
+        }
+
+        public void setTargetUnit(String targetUnit) {
+            this.targetUnit = targetUnit;
+        }
+    }
+
+
+
 }
 

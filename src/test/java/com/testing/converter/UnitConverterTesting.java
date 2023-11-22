@@ -4,12 +4,12 @@ import org.junit.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import java.math.BigDecimal;
 import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 
 public class UnitConverterTesting {
 
@@ -177,7 +177,7 @@ public class UnitConverterTesting {
     @Test
     public void number_testDUPath1() {
         // DU Path 1: "decimalToBinary" case
-        ConverterLogic.ConversionRequest request = new ConverterLogic.ConversionRequest();
+        ConverterLogic.Number_ConversionRequest request = new ConverterLogic.Number_ConversionRequest();
         request.setInput("10");
         request.setConversionType("decimalToBinary");
 
@@ -190,7 +190,7 @@ public class UnitConverterTesting {
     @Test
     public void number_testDUPath2() {
         // DU Path 2: "binaryToDecimal" case
-        ConverterLogic.ConversionRequest request = new ConverterLogic.ConversionRequest();
+        ConverterLogic.Number_ConversionRequest request = new ConverterLogic.Number_ConversionRequest();
         request.setInput("1010");
         request.setConversionType("binaryToDecimal");
 
@@ -203,7 +203,7 @@ public class UnitConverterTesting {
     @Test
     public void number_testDUPath3() {
         // DU Path 3: "decimalToHexadecimal" case
-        ConverterLogic.ConversionRequest request = new ConverterLogic.ConversionRequest();
+        ConverterLogic.Number_ConversionRequest request = new ConverterLogic.Number_ConversionRequest();
         request.setInput("255");
         request.setConversionType("decimalToHexadecimal");
 
@@ -216,7 +216,7 @@ public class UnitConverterTesting {
     @Test
     public void number_testDUPath4() {
         // DU Path 4: "hexadecimalToDecimal" case
-        ConverterLogic.ConversionRequest request = new ConverterLogic.ConversionRequest();
+        ConverterLogic.Number_ConversionRequest request = new ConverterLogic.Number_ConversionRequest();
         request.setInput("FF");
         request.setConversionType("hexadecimalToDecimal");
 
@@ -229,7 +229,7 @@ public class UnitConverterTesting {
     @Test
     public void number_testDUPath5() {
         // DU Path 5: Exception block for NumberFormatException
-        ConverterLogic.ConversionRequest request = new ConverterLogic.ConversionRequest();
+        ConverterLogic.Number_ConversionRequest request = new ConverterLogic.Number_ConversionRequest();
         request.setInput("invalidInput");
         request.setConversionType("decimalToBinary");
 
@@ -241,7 +241,7 @@ public class UnitConverterTesting {
     @Test
     public void number_testDUPath6() {
         // DU Path 6: Default case (invalid conversionType)
-        ConverterLogic.ConversionRequest request = new ConverterLogic.ConversionRequest();
+        ConverterLogic.Number_ConversionRequest request = new ConverterLogic.Number_ConversionRequest();
         request.setInput("10");
         request.setConversionType("invalidConversionType");
 
@@ -249,6 +249,179 @@ public class UnitConverterTesting {
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     }
+
+    @Test
+    public void Currency_testDUPath1() {
+        // DU Path 1: Normal execution
+        ConverterLogic.CurrencyConversionRequest request = new ConverterLogic.CurrencyConversionRequest();
+        request.setSourceCurrency("USD");
+        request.setTargetCurrency("EUR");
+        request.setAmount(new BigDecimal("100"));
+
+        ResponseEntity<?> response = new ConverterLogic().convertCurrency(request);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        // Validate the result based on known exchange rates
+        assertEquals(0, new BigDecimal("85").compareTo((BigDecimal) response.getBody()));
+
+    }
+
+    @Test
+    public void Currency_testDUPath2() {
+        // DU Path 2: Invalid source or target currency
+        ConverterLogic.CurrencyConversionRequest request = new ConverterLogic.CurrencyConversionRequest();
+        request.setSourceCurrency("XYZ"); // Invalid currency
+        request.setTargetCurrency("EUR");
+        request.setAmount(new BigDecimal("100"));
+
+        ResponseEntity<?> response = new ConverterLogic().convertCurrency(request);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+    }
+
+    @Test
+    public void Currency_testDUPath3() {
+        // DU Path 3: Exception in amount conversion
+        ConverterLogic.CurrencyConversionRequest request = new ConverterLogic.CurrencyConversionRequest();
+        request.setSourceCurrency("USD");
+        request.setTargetCurrency("EUR");
+
+        // Provide a valid numeric amount
+        request.setAmount(new BigDecimal("100.50"));
+
+        ResponseEntity<?> response = new ConverterLogic().convertCurrency(request);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        // Add additional assertions based on your expected conversion results
+    }
+
+    @Test
+    public void Currency_testDUPath4() {
+        // DU Path 4: Exception in source currency check
+        ConverterLogic.CurrencyConversionRequest request = new ConverterLogic.CurrencyConversionRequest();
+        request.setSourceCurrency("XYZ"); // Invalid source currency
+        request.setTargetCurrency("EUR");
+        request.setAmount(new BigDecimal("100"));
+
+        ResponseEntity<?> response = new ConverterLogic().convertCurrency(request);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+    }
+
+    @Test
+    public void Currency_testDUPath5() {
+        // DU Path 5: Exception in target currency check
+        ConverterLogic.CurrencyConversionRequest request = new ConverterLogic.CurrencyConversionRequest();
+        request.setSourceCurrency("USD");
+        request.setTargetCurrency("XYZ"); // Invalid target currency
+        request.setAmount(new BigDecimal("100"));
+
+        ResponseEntity<?> response = new ConverterLogic().convertCurrency(request);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+    }
+
+    @Test
+    public void Currency_testDUPath6() {
+        // DU Path 6: Exception in general
+        ConverterLogic.CurrencyConversionRequest request = new ConverterLogic.CurrencyConversionRequest();
+        request.setSourceCurrency("USD");
+        request.setTargetCurrency("EUR");
+        request.setAmount(new BigDecimal("100"));
+
+        // Override exchange rates map to trigger an exception during conversion
+        ConverterLogic.exchangeRates.put("USD", BigDecimal.ZERO);
+
+        ResponseEntity<?> response = new ConverterLogic().convertCurrency(request);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+    }
+
+    @Test
+    public void testConvertFromCelsiusToFahrenheit() {
+        ConverterLogic controller = new ConverterLogic();
+
+        // DU Path 1
+        BigDecimal result1 = controller.convertFromCelsius(new BigDecimal("25"), "fahrenheit");
+        assertEquals(new BigDecimal("77"), result1);
+
+        // DU Path 2
+        assertThrows(IllegalArgumentException.class, () ->
+                controller.convertFromCelsius(new BigDecimal("25"), "invalidUnit")
+        );
+    }
+
+    @Test
+    public void testConvertFromCelsiusToKelvin() {
+        ConverterLogic controller = new ConverterLogic();
+
+        // DU Path 1
+        BigDecimal result1 = controller.convertFromCelsius(new BigDecimal("25"), "kelvin");
+        assertEquals(new BigDecimal("298.15"), result1);
+
+        // DU Path 2
+        assertThrows(IllegalArgumentException.class, () ->
+                controller.convertFromCelsius(new BigDecimal("25"), "invalidUnit")
+        );
+    }
+
+    @Test
+    public void testConvertFromFahrenheitToCelsius() {
+        ConverterLogic controller = new ConverterLogic();
+
+        // DU Path 3
+        BigDecimal result1 = controller.convertFromFahrenheit(new BigDecimal("77"), "celsius");
+        assertEquals(new BigDecimal("25"), result1);
+
+        // DU Path 4
+        assertThrows(IllegalArgumentException.class, () ->
+                controller.convertFromFahrenheit(new BigDecimal("77"), "invalidUnit")
+        );
+    }
+
+    @Test
+    public void testConvertFromFahrenheitToKelvin() {
+        ConverterLogic controller = new ConverterLogic();
+
+        // DU Path 3
+        BigDecimal result1 = controller.convertFromFahrenheit(new BigDecimal("77"), "kelvin");
+        assertEquals(new BigDecimal("298.15"), result1);
+
+        // DU Path 4
+        assertThrows(IllegalArgumentException.class, () ->
+                controller.convertFromFahrenheit(new BigDecimal("77"), "invalidUnit")
+        );
+    }
+
+    @Test
+    public void testConvertFromKelvinToCelsius() {
+        ConverterLogic controller = new ConverterLogic();
+
+        // DU Path 5
+        BigDecimal result1 = controller.convertFromKelvin(new BigDecimal("298.15"), "celsius");
+        assertEquals(0, result1.compareTo(new BigDecimal("25"))); // Use compareTo for BigDecimal equality
+
+        // DU Path 6
+        assertThrows(IllegalArgumentException.class, () ->
+                controller.convertFromKelvin(new BigDecimal("298.15"), "invalidUnit")
+        );
+    }
+
+    @Test
+    public void testConvertFromKelvinToFahrenheit() {
+        ConverterLogic controller = new ConverterLogic();
+
+        // DU Path 5
+        BigDecimal result1 = controller.convertFromKelvin(new BigDecimal("298.15"), "fahrenheit");
+        assertEquals(0, result1.compareTo(new BigDecimal("77"))); // Use compareTo for BigDecimal equality
+
+        // DU Path 6
+        assertThrows(IllegalArgumentException.class, () ->
+                controller.convertFromKelvin(new BigDecimal("298.15"), "invalidUnit")
+        );
+    }
+
+
 
 
 }
